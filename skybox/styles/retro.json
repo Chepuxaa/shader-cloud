@@ -2,6 +2,8 @@
   "contract": 1,
   "id": "retro",
   "name": "Retro",
+  "author": "kissd",
+  "order": 30,
   "controls": [
     {
       "key": "animation",

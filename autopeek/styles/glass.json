@@ -2,6 +2,8 @@
   "contract": 1,
   "id": "glass",
   "name": "Glass",
+  "author": "kissd",
+  "order": 20,
   "controls": [
     {
       "key": "radius",

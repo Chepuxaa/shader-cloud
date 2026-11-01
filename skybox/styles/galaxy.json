@@ -2,6 +2,8 @@
   "contract": 1,
   "id": "galaxy",
   "name": "Galaxy",
+  "author": "kissd",
+  "order": 20,
   "controls": [
     {
       "key": "animation",

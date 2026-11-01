@@ -2,6 +2,8 @@
   "contract": 1,
   "id": "ripples",
   "name": "Ripples",
+  "author": "kissd",
+  "order": 10,
   "controls": [
     {
       "key": "radius",

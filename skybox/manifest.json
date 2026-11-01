@@ -1,25 +1,25 @@
 {
-  "contract": 1,
-  "effects": [
-    {
-      "id": "lines",
-      "name": "Lines",
-      "author": "kissd"
-    },
-    {
-      "id": "galaxy",
-      "name": "Galaxy",
-      "author": "kissd"
-    },
-    {
-      "id": "retro",
-      "name": "Retro",
-      "author": "kissd"
-    },
-    {
-      "id": "portal",
-      "name": "Portal",
-      "author": "kissd"
-    }
-  ]
+    "contract": 1,
+    "effects": [
+        {
+            "id": "lines",
+            "name": "Lines",
+            "author": "kissd"
+        },
+        {
+            "id": "galaxy",
+            "name": "Galaxy",
+            "author": "kissd"
+        },
+        {
+            "id": "retro",
+            "name": "Retro",
+            "author": "kissd"
+        },
+        {
+            "id": "portal",
+            "name": "Portal",
+            "author": "kissd"
+        }
+    ]
 }

@@ -1,25 +1,25 @@
 {
-  "contract": 1,
-  "effects": [
-    {
-      "id": "ripples",
-      "name": "Ripples",
-      "author": "kissd"
-    },
-    {
-      "id": "glass",
-      "name": "Glass",
-      "author": "kissd"
-    },
-    {
-      "id": "radial",
-      "name": "Radial",
-      "author": "kissd"
-    },
-    {
-      "id": "halo",
-      "name": "Halo",
-      "author": "Codex"
-    }
-  ]
+    "contract": 1,
+    "effects": [
+        {
+            "id": "ripples",
+            "name": "Ripples",
+            "author": "kissd"
+        },
+        {
+            "id": "glass",
+            "name": "Glass",
+            "author": "kissd"
+        },
+        {
+            "id": "radial",
+            "name": "Radial",
+            "author": "kissd"
+        },
+        {
+            "id": "halo",
+            "name": "Halo",
+            "author": "Codex"
+        }
+    ]
 }

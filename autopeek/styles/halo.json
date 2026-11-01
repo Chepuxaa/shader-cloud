@@ -2,6 +2,8 @@
   "contract": 1,
   "id": "halo",
   "name": "Halo",
+  "author": "Codex",
+  "order": 40,
   "controls": [
     {
       "key": "radius",
@@ -47,6 +49,5 @@
       ],
       "group": "colors"
     }
-  ],
-  "author": "Codex"
+  ]
 }

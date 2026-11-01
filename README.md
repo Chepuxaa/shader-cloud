@@ -31,19 +31,54 @@ files cannot load the new library. No Lua update is needed for later style edits
 that remain within the existing shader/control contract.
 
 To add a style, create `<id>.json` and `<id>.hlsl` in the appropriate `styles`
-directory, then add an entry to that catalog:
+directory. Set the name and author in the style JSON:
 
 ```json
 {
   "contract": 1,
-  "effects": [
-    {"id": "halo", "name": "Halo", "author": "Codex"}
-  ]
+  "id": "example",
+  "name": "My effect",
+  "author": "Your name",
+  "order": 50,
+  "controls": []
 }
 ```
 
-The author appears as **Halo (by Codex)** and is searchable. IDs are lowercase
-letters, digits, underscores and hyphens; no paths or arbitrary download URLs.
+The author appears as **My effect (by Your name)** and is searchable. IDs are
+lowercase letters, digits, underscores and hyphens; the ID must match both
+filenames. Name and author support up to 48 and 32 UTF-8 bytes respectively.
+Optional `order` controls list position (lower first, default 1000); equal values
+are sorted by ID. Existing style order is preserved.
+
+### Automatic catalogs
+
+Do not edit `manifest.json` manually. After a push to `main`, the **Build style
+manifests** GitHub Actions workflow validates all three libraries and commits
+updated manifests as `github-actions[bot]`. No separate token or secret is needed.
+Once the workflow finishes, press **Refresh library** in the Lua menu.
+
+Changing a JSON name/author updates its list entry. Deleting both style files
+removes the entry. Pull requests are validated without writing to the repository;
+catalogs are published after merge. The Actions page also offers **Run workflow**
+on `main` to rebuild manually.
+
+Missing pairs, malformed JSON, duplicate keys, invalid controls, reserved or
+overlapping slots and file-size limits stop generation before any catalog is
+changed. Source checks enforce the client's HLSL size/include rules; they do not
+compile HLSL or prove its appearance in game. The Lua client still compiles the
+chosen shader and keeps its current effect if compilation fails.
+
+Local generation uses Python 3.10+ with no external dependencies:
+
+```text
+python -m unittest discover -s tests -v
+python scripts/build_manifests.py
+python scripts/build_manifests.py --check
+```
+
+If repository or branch rules block the bot commit, the workflow reports a failed
+publish. Generate locally and commit the catalogs, or grant the workflow access
+under the repository's rules; it never force-pushes.
 
 ## Autopeek radius
 
@@ -73,7 +108,7 @@ circular rim and blurred scene), **Radial** (soft center glow), and **Halo**
 
 ## Control schema
 
-Each descriptor has `contract: 1`, `id`, `name` and `controls`. See the included
+Each descriptor has `contract: 1`, `id`, `name`, `author` and `controls`. See the included
 JSON files for complete examples. A control has a unique `key`, `label`, `type`,
 `default` and either a `slot` or the special `binding: "speed"`.
 

@@ -2,5 +2,7 @@
   "contract": 1,
   "id": "galaxy",
   "name": "Galaxy",
+  "author": "kissd",
+  "order": 10,
   "controls": []
 }

@@ -2,6 +2,8 @@
   "contract": 1,
   "id": "hologram",
   "name": "Hologram",
+  "author": "kissd",
+  "order": 20,
   "controls": [
     {
       "key": "tint",

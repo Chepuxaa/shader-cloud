@@ -2,6 +2,8 @@
   "contract": 1,
   "id": "radial",
   "name": "Radial",
+  "author": "kissd",
+  "order": 30,
   "controls": [
     {
       "key": "radius",

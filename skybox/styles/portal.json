@@ -2,6 +2,8 @@
   "contract": 1,
   "id": "portal",
   "name": "Portal",
+  "author": "kissd",
+  "order": 40,
   "controls": [
     {
       "key": "animation",
