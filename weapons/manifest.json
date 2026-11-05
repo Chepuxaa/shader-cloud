@@ -10,6 +10,11 @@
       "id": "hologram",
       "name": "Hologram",
       "author": "kissd"
+    },
+    {
+      "id": "comic",
+      "name": "Comic",
+      "author": "kissd"
     }
   ]
 }

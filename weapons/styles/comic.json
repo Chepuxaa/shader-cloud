@@ -1,0 +1,19 @@
+{
+  "contract": 2,
+  "id": "comic",
+  "name": "Comic",
+  "author": "kissd",
+  "order": 30,
+  "controls": [
+    {"key":"body","label":"Body","type":"color","slot":1,"default":[255,183,48],"group":"colors"},
+    {"key":"shadow","label":"Shadows","type":"color","slot":4,"default":[66,48,104],"group":"colors"},
+    {"key":"ink","label":"Ink","type":"color","slot":7,"default":[13,17,27],"group":"colors"},
+    {"key":"highlight","label":"Highlights","type":"color","slot":10,"default":[255,244,209],"group":"colors"},
+    {"key":"levels","label":"Shading levels","type":"slider","slot":13,"min":2,"max":6,"step":1,"default":3},
+    {"key":"edges","label":"Ink edges","type":"slider","slot":14,"min":0,"max":100,"step":1,"default":70,"scale":0.01},
+    {"key":"halftone","label":"Halftone","type":"slider","slot":15,"min":0,"max":100,"step":1,"default":55,"scale":0.01},
+    {"key":"dot_size","label":"Dot size","type":"slider","slot":16,"min":3,"max":12,"step":1,"default":6},
+    {"key":"ambient","label":"Shadow lift","type":"slider","slot":17,"min":0,"max":100,"step":1,"default":20,"scale":0.01},
+    {"key":"highlight_strength","label":"Highlight strength","type":"slider","slot":18,"min":0,"max":100,"step":1,"default":45,"scale":0.01}
+  ]
+}

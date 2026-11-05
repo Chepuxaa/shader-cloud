@@ -174,6 +174,12 @@ Targets `ps_5_0` and replaces `csgo_weapon.vfx_ps`. Hologram reads the original
 local-position `TEXCOORD8`; Galaxy reads pixel position and frame-camera metadata.
 Do not add vertex-input dependencies that the original draw does not supply.
 
+Comic uses geometric shading bands, a dark inner rim and an antialiased print-dot
+pattern. It has four editable palette colors, 2..6 shading levels and controls for
+ink, halftone, dot spacing, shadow lift and highlights. It uses the existing pixel
+position and frame metadata, without new textures or render passes. Its ink stays
+inside the model silhouette; this material replaces the original skin's colors.
+
 ### Autopeek
 
 Targets `ps_4_0` and receives normalized local UV coordinates:
