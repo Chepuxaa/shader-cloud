@@ -12,6 +12,10 @@ import tempfile
 SECTIONS = ("skybox", "weapons", "autopeek")
 ROOT = Path(__file__).resolve().parents[1]
 ID = re.compile(r"[a-z][a-z0-9_-]{0,39}\Z")
+MAX_USER_SLOTS = 16368  # 64 KiB DX11 constant buffer minus 16 frame floats.
+MAX_JSON_BYTES = 32768
+MAX_CONTROL_NUMBER = 100000
+MAX_PUBLISHED_MAGNITUDE = 1e9
 
 
 class InvalidStyle(ValueError):
@@ -30,7 +34,8 @@ def text(value, limit):
 
 
 def number(value):
-    return type(value) in (int, float) and math.isfinite(value)
+    return (type(value) in (int, float) and abs(value) <= MAX_CONTROL_NUMBER
+            and math.isfinite(value))
 
 
 def unique_object(pairs):
@@ -45,14 +50,21 @@ def invalid_constant(value):
     raise InvalidStyle(f"invalid JSON number: {value}")
 
 
+def slot_count(d):
+    """Infer scalar storage from controls; engine bindings consume no slots."""
+    return max((c["slot"] + (3 if c["type"] == "color" else 1) - 1
+                for c in d["controls"] if "slot" in c), default=0)
+
+
 def descriptor(path, section):
     require(not path.is_symlink(), "style symlinks are not supported")
     data = path.read_bytes()
-    require(0 < len(data) <= 32768, "JSON must be 1..32768 bytes")
+    require(0 < len(data) <= MAX_JSON_BYTES, "JSON must be 1..32768 bytes")
     d = json.loads(data.decode("utf-8"), object_pairs_hook=unique_object,
                    parse_constant=invalid_constant)
     require(isinstance(d, dict), "descriptor must be an object")
-    require(type(d.get("contract")) is int and d["contract"] == 1, "contract must be 1")
+    require(type(d.get("contract")) is int and d["contract"] in (1, 2), "contract must be 1 or 2")
+    dynamic = d["contract"] == 2
     require(d.get("id") == path.stem and ID.fullmatch(path.stem), "id must match the filename and use lowercase letters, digits, _ or -")
     require(text(d.get("name"), 48), "name must be 1..48 UTF-8 bytes")
     require(text(d.get("author"), 32), "author must be 1..32 UTF-8 bytes")
@@ -60,9 +72,12 @@ def descriptor(path, section):
     require("capture_background" not in d or type(d["capture_background"]) is bool,
             "capture_background must be boolean")
     controls = d.get("controls")
-    require(isinstance(controls, list) and len(controls) <= 16, "controls must be an array of at most 16 items")
-    used = set(range(8, 16)) if section == "weapons" else set(range(6, 16)) if section == "autopeek" else set()
-    keys, speed = set(), False
+    max_controls = MAX_USER_SLOTS if dynamic else 16
+    require(isinstance(controls, list) and len(controls) <= max_controls,
+            f"controls must be an array of at most {max_controls} items")
+    used = set() if dynamic else (set(range(8, 16)) if section == "weapons"
+                                  else set(range(6, 16)) if section == "autopeek" else set())
+    keys, bindings = set(), set()
     for c in controls:
         require(isinstance(c, dict), "control must be an object")
         key = c.get("key")
@@ -76,6 +91,10 @@ def descriptor(path, section):
             require(all(number(c.get(k)) for k in ("min", "max", "step", "default")), f"{key}: invalid slider numbers")
             require(c["min"] < c["max"] and c["min"] <= value <= c["max"]
                     and 0 < c["step"] <= c["max"] - c["min"], f"{key}: invalid slider range")
+            if c.get("binding") != "speed":
+                scale = c.get("scale", 1)
+                require(max(abs(c["min"] * scale), abs(c["max"] * scale)) < MAX_PUBLISHED_MAGNITUDE,
+                        f"{key}: scaled slider range must have magnitude below 1e9")
         elif kind == "select":
             options = c.get("options")
             require(isinstance(options, list) and 1 <= len(options) <= 16
@@ -89,14 +108,21 @@ def descriptor(path, section):
                     and all(type(v) is int and 0 <= v <= 255 for v in value), f"{key}: invalid RGB color")
         else:
             raise InvalidStyle(f"{key}: unsupported control type")
-        if c.get("binding") == "speed":
-            require(not speed and kind == "slider" and "slot" not in c
-                    and c["min"] >= 0 and c["max"] <= 300, f"{key}: invalid speed binding")
-            speed = True
+        if "binding" in c:
+            binding = c["binding"]
+            allowed = ("speed", "radius", "opacity") if dynamic and section == "autopeek" else ("speed",)
+            require(isinstance(binding, str) and binding in allowed,
+                    f"{key}: unsupported binding")
+            require(binding not in bindings and kind == "slider" and "slot" not in c,
+                    f"{key}: invalid {binding} binding")
+            if binding == "speed":
+                require(c["min"] >= 0 and c["max"] <= 300, f"{key}: invalid speed binding")
+            bindings.add(binding)
         else:
             slot = c.get("slot")
-            require("binding" not in c and type(slot) is int
-                    and 1 <= slot <= 16 - width, f"{key}: invalid slot")
+            maximum = MAX_USER_SLOTS if dynamic else 15
+            require(type(slot) is int and 1 <= slot <= maximum - width + 1,
+                    f"{key}: invalid slot")
             slots = set(range(slot, slot + width))
             require(not used.intersection(slots), f"{key}: overlapping or reserved slots")
             used.update(slots)

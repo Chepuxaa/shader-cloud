@@ -9,6 +9,7 @@ on:
       - 'autopeek/styles/**'
       - 'scripts/**'
       - 'tests/**'
+      - 'examples/**'
       - '.github/workflows/build-manifests.yml'
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - 'autopeek/styles/**'
       - 'scripts/**'
       - 'tests/**'
+      - 'examples/**'
       - '.github/workflows/build-manifests.yml'
   workflow_dispatch:
 

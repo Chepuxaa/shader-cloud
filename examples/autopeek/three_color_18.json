@@ -1,0 +1,24 @@
+{
+  "contract": 2,
+  "id": "three_color_18",
+  "name": "Three Color 18",
+  "author": "Codex",
+  "order": 1000,
+  "controls": [
+    {"key":"inner_color","label":"Inner color","type":"color","slot":1,"default":[104,186,255],"group":"colors"},
+    {"key":"ring_color","label":"Ring color","type":"color","slot":4,"default":[191,125,255],"group":"colors"},
+    {"key":"accent_color","label":"Accent color","type":"color","slot":16,"default":[255,183,104],"group":"colors"},
+    {"key":"ring_radius","label":"Ring radius","type":"slider","slot":7,"min":0.1,"max":0.9,"step":0.01,"default":0.72},
+    {"key":"line_width","label":"Line width","type":"slider","slot":8,"min":0.003,"max":0.1,"step":0.001,"default":0.015},
+    {"key":"glow","label":"Glow","type":"slider","slot":9,"min":0,"max":3,"step":0.05,"default":0.8},
+    {"key":"pulse_amount","label":"Pulse amount","type":"slider","slot":10,"min":0,"max":0.15,"step":0.005,"default":0.025},
+    {"key":"pulse_frequency","label":"Pulse frequency","type":"slider","slot":11,"min":0,"max":5,"step":0.05,"default":0.6},
+    {"key":"segments","label":"Segments","type":"slider","slot":12,"min":3,"max":24,"step":1,"default":8},
+    {"key":"twist","label":"Twist","type":"slider","slot":13,"min":0,"max":8,"step":0.1,"default":1},
+    {"key":"softness","label":"Softness","type":"slider","slot":14,"min":0.001,"max":0.1,"step":0.001,"default":0.012},
+    {"key":"fill","label":"Fill","type":"slider","slot":15,"min":0,"max":1,"step":0.01,"default":0.12},
+    {"key":"radius","label":"Radius","type":"slider","binding":"radius","min":8,"max":128,"step":1,"default":42},
+    {"key":"opacity","label":"Opacity","type":"slider","binding":"opacity","min":0,"max":100,"step":1,"default":100,"scale":0.01},
+    {"key":"speed","label":"Speed","type":"slider","binding":"speed","min":0,"max":300,"step":1,"default":100}
+  ]
+}
