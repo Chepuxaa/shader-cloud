@@ -1,4 +1,3 @@
-cbuffer Custom:register(b6) {float4 params;float4 low;float4 viewport;float4 projection;};
 struct Input {float3 localPosition:TEXCOORD8;float4 screen:SV_Position;};
 float hash(float3 p) {p=frac(p*.1031);p+=dot(p,p.yzx+33.33);return frac((p.x+p.y)*p.z);}
 float3 unit(float3 v,float3 fallback) {float l=dot(v,v);return l>1e-12?v*rsqrt(max(l,1e-12)):fallback;}
@@ -8,10 +7,10 @@ float scanline(float coordinate,float width) {
  return 1-smoothstep(width,width+aa,distance);
 }
 float4 main(Input i):SV_Target0 {
- float time=params.x;
- float2 size=max(viewport.zw,1);
- float2 ndc=((i.screen.xy-viewport.xy)/size)*float2(2,-2)+float2(-1,1);
- float3 surface=float3(ndc.x*(size.x/size.y)*projection.x,ndc.y*projection.x,1)*max(i.screen.w,1e-6);
+ float time=SC_Time();
+ float2 size=max(SC_FrameViewport().zw,1);
+ float2 ndc=((i.screen.xy-SC_FrameViewport().xy)/size)*float2(2,-2)+float2(-1,1);
+ float3 surface=float3(ndc.x*(size.x/size.y)*SC_FrameCamera().w,ndc.y*SC_FrameCamera().w,1)*max(i.screen.w,1e-6);
  float3 normal=unit(cross(ddx(surface),ddy(surface)),float3(0,0,1));
  float3 eye=unit(-surface,float3(0,0,-1));
  float rim=pow(saturate(1-abs(dot(normal,eye))),2.1);
@@ -24,7 +23,7 @@ float4 main(Input i):SV_Target0 {
  float event=1-step(.14,frac(time/5)*5);
  float3 block=floor(i.localPosition*float3(.6,1.8,3.2));
  float glitch=event*step(.64,hash(block+floor(time*24)));
- float3 tint=low.rgb;
+ float3 tint=SC_Color(4);
  float3 color=tint*.03*(1+rim*2);
  color+=tint*.78*(stripes*.65+micro);
  color+=tint*(rim*1.6+sweep*.5);

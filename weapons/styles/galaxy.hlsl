@@ -1,4 +1,3 @@
-cbuffer Custom:register(b6) {float4 params;float4 low;float4 high;float4 glow;};
 // Camera angles and client dimensions come from the Fatality Lua API.
 struct Input {float4 screen:SV_Position;};
 float hash(float3 p) {
@@ -20,15 +19,15 @@ float fbm(float3 p) {
 float3 unit(float3 v,float3 fallback) {float l=dot(v,v);return l>1e-12?v*rsqrt(max(l,1e-12)):fallback;}
 
 float3 worldRay(Input i) {
- float pitch=glow.y,yaw=glow.z,roll=glow.w;
+ float pitch=radians(SC_FrameCamera().x),yaw=radians(SC_FrameCamera().y),roll=radians(SC_FrameCamera().z);
  float cp=cos(pitch),sp=sin(pitch),cy=cos(yaw),sy=sin(yaw),cr=cos(roll),sr=sin(roll);
  float3 forward=float3(cp*cy,cp*sy,-sp);
  float3 right0=float3(sy,-cy,0),up0=float3(sp*cy,sp*sy,cp);
  float3 right=right0*cr-up0*sr,up=up0*cr+right0*sr;
- float2 size=max(high.zw,1);
- float2 ndc=((i.screen.xy-high.xy)/size)*float2(2,-2)+float2(-1,1);
+ float2 size=max(SC_FrameViewport().zw,1);
+ float2 ndc=((i.screen.xy-SC_FrameViewport().xy)/size)*float2(2,-2)+float2(-1,1);
  // Source's reference horizontal FOV is projected at 4:3; only orientation is used.
- return unit(forward+right*ndc.x*(size.x/size.y)*glow.x+up*ndc.y*glow.x,forward);
+ return unit(forward+right*ndc.x*(size.x/size.y)*SC_FrameCamera().w+up*ndc.y*SC_FrameCamera().w,forward);
 }
 float3 stars(float3 ray,float scale,float density,float time) {
  const float PI=3.14159265359;
@@ -66,7 +65,7 @@ float3 stars(float3 ray,float scale,float density,float time) {
  return result*step(.0001,density);
 }
 float4 main(Input i):SV_Target0 {
- float scale=1.0,time=params.x;
+ float scale=1.0,time=SC_Time();
  float3 ray=worldRay(i);
  float3 p=ray*(7/scale)+float3(13.1,7.3,21.7);
  float3 flow=float3(time*.014,-time*.009,time*.005);

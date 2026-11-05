@@ -70,7 +70,7 @@ def fixtures():
         ("excess slot", [slider(slot=MAX_USER_SLOTS + 1)]),
         ("large cross-vector color", [color]),
         ("large color overlap", [color, slider(slot=MAX_USER_SLOTS - 3)]),
-        ("legacy reserved slot", [slider(slot=8)]),
+        ("slot eight", [slider(slot=8)]),
         ("over sixteen controls", [slider(key=f"value_{i}", slot=i) for i in range(1, 18)]),
     ]
 
@@ -92,8 +92,7 @@ class ClientParameterContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "demo.json"
             for section in SECTIONS:
-                reserved = list(range(8, 16)) if section == "weapons" else list(range(6, 16)) if section == "autopeek" else []
-                config = lua_value(dict(section=section, reserved_slots=reserved))
+                config = lua_value(dict(section=section))
                 for contract in (1, 2):
                     for name, controls in fixtures():
                         with self.subTest(section=section, contract=contract, fixture=name):

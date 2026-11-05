@@ -17,7 +17,7 @@ class ManifestTests(unittest.TestCase):
             (self.root / section / "styles").mkdir(parents=True)
 
     def style(self, identifier="demo", section="skybox", **fields):
-        d = dict(contract=1, id=identifier, name="Demo", author="kissd", controls=[])
+        d = dict(contract=2, id=identifier, name="Demo", author="kissd", controls=[])
         d.update(fields)
         path = self.root / section / "styles" / f"{identifier}.json"
         path.write_text(json.dumps(d), encoding="utf-8")
@@ -83,9 +83,9 @@ class ManifestTests(unittest.TestCase):
             generate(self.root)
 
     def test_bad_metadata_and_control_contracts_rejected(self):
-        for fields in (dict(id="other"), dict(author="я" * 17), dict(name=""),
+        for fields in (dict(id="other"), dict(author="СЏ" * 17), dict(name=""),
                        dict(order=True), dict(contract=True),
-                       dict(controls=[dict(key="x", label="X", type="color", slot=7, default=[1, 2, 3])])):
+                       dict(controls=[dict(key="x", label="X", type="color", slot=MAX_USER_SLOTS, default=[1, 2, 3])])):
             with self.subTest(fields=fields):
                 self.style(section="weapons", **fields)
                 with self.assertRaises(InvalidStyle):
@@ -117,7 +117,7 @@ class ManifestTests(unittest.TestCase):
             with self.subTest(expected=expected):
                 self.assertEqual(slot_count(self.validated(controls=controls)), expected)
 
-    def test_dynamic_colors_cross_legacy_boundary_and_reuse_reserved_slots(self):
+    def test_colors_cross_vectors_and_use_all_user_slots(self):
         color = dict(key="tint", label="Tint", type="color", slot=15, default=[1, 2, 3])
         for section in SECTIONS:
             with self.subTest(section=section):
@@ -166,7 +166,7 @@ class ManifestTests(unittest.TestCase):
             descriptor(path, "skybox")
 
     def test_control_numbers_and_scale_match_client_magnitude_limit(self):
-        for contract in (1, 2):
+        for contract in (2,):
             with self.subTest(contract=contract):
                 self.validated(contract=contract, controls=[self.slider(min=-100000, max=100000, default=0, step=100000)])
                 for control in (self.slider(min=-100001), self.slider(max=100001),
@@ -180,7 +180,7 @@ class ManifestTests(unittest.TestCase):
                     self.validated(contract=contract, controls=[self.slider(scale=scale)])
 
     def test_scaled_slider_range_stays_strictly_below_native_magnitude_limit(self):
-        for contract in (1, 2):
+        for contract in (2,):
             for scale in (-100000, 100000):
                 with self.subTest(contract=contract, scale=scale):
                     for lower, upper in ((0, 10000), (-10000, 0)):
@@ -189,23 +189,17 @@ class ManifestTests(unittest.TestCase):
                     self.validated(contract=contract, controls=[self.slider(min=-9999, max=9999, default=0, scale=scale)])
 
     def test_speed_uses_unscaled_percentage_but_scale_still_must_be_valid(self):
-        for contract in (1, 2):
+        for contract in (2,):
             self.validated(contract=contract, controls=[self.binding("speed", max=300, default=100, scale=100000)])
             with self.assertRaisesRegex(InvalidStyle, "invalid scale"):
                 self.validated(contract=contract, controls=[self.binding("speed", scale=100001)])
 
-    def test_legacy_slots_and_control_limit_are_unchanged(self):
-        for section, slot in (("skybox", 16), ("weapons", 8), ("autopeek", 6)):
-            with self.subTest(section=section):
-                with self.assertRaises(InvalidStyle):
-                    self.validated(section=section, contract=1, controls=[self.slider(slot=slot)])
-        color = dict(key="tint", label="Tint", type="color", slot=14, default=[1, 2, 3])
-        with self.assertRaisesRegex(InvalidStyle, "invalid slot"):
-            self.validated(contract=1, controls=[color])
-        color["slot"] = 13
-        self.assertEqual(slot_count(self.validated(contract=1, controls=[color])), 15)
-        with self.assertRaisesRegex(InvalidStyle, "at most 16"):
-            self.validated(contract=1, controls=[self.slider(f"v_{i}", i) for i in range(1, 18)])
+    def test_only_style_contract_two_is_accepted(self):
+        for section in SECTIONS:
+            for contract in (1, 0, 3, True, "2", None):
+                with self.subTest(section=section, contract=contract):
+                    with self.assertRaisesRegex(InvalidStyle, "style contract must be 2"):
+                        self.validated(section=section, contract=contract)
 
     def test_dynamic_engine_bindings_are_slotless_unique_sliders(self):
         controls = [self.binding("speed", max=300, default=100),
@@ -225,34 +219,32 @@ class ManifestTests(unittest.TestCase):
                 with self.assertRaisesRegex(InvalidStyle, "binding"):
                     self.validated(section="autopeek", controls=[binding, dict(binding, key="other")])
 
-    def test_radius_and_opacity_bindings_only_belong_to_dynamic_autopeek(self):
-        for section, contract in (("skybox", 1), ("weapons", 1), ("autopeek", 1),
-                                  ("skybox", 2), ("weapons", 2)):
+    def test_radius_and_opacity_bindings_only_belong_to_autopeek(self):
+        for section in ("skybox", "weapons"):
             for binding in ("radius", "opacity"):
-                with self.subTest(section=section, contract=contract, binding=binding):
+                with self.subTest(section=section, binding=binding):
                     with self.assertRaisesRegex(InvalidStyle, "binding"):
-                        self.validated(section=section, contract=contract, controls=[self.binding(binding)])
+                        self.validated(section=section, controls=[self.binding(binding)])
         for section in SECTIONS:
-            for contract in (1, 2):
-                self.validated(section=section, contract=contract, controls=[self.binding("speed")])
+            self.validated(section=section, controls=[self.binding("speed")])
 
-    def test_mixed_contracts_generate_same_catalog_without_descriptor_changes(self):
-        old = self.style("legacy", contract=1)
-        new = self.style("dynamic", contract=2, controls=[self.slider(slot=30)])
-        descriptors = {p: p.read_bytes() for p in (old, new)}
+    def test_catalog_contract_is_independent_of_style_contract(self):
+        first = self.style("first")
+        second = self.style("second", controls=[self.slider(slot=30)])
+        descriptors = {p: p.read_bytes() for p in (first, second)}
         generate(self.root)
         manifest = self.root / "skybox/manifest.json"
         before = manifest.read_bytes()
         self.assertEqual(json.loads(before)["contract"], 1)
-        self.assertEqual(self.entries(), [dict(id="dynamic", name="Demo", author="kissd"),
-                                         dict(id="legacy", name="Demo", author="kissd")])
+        self.assertEqual(self.entries(), [dict(id="first", name="Demo", author="kissd"),
+                                         dict(id="second", name="Demo", author="kissd")])
         self.assertEqual(generate(self.root), [])
         self.assertEqual(generate(self.root, check=True), [])
         self.assertEqual(manifest.read_bytes(), before)
         for path, data in descriptors.items():
             self.assertEqual(path.read_bytes(), data)
 
-    def test_upgrading_descriptor_contract_keeps_manifest_bytes_identical(self):
+    def test_parameter_count_change_keeps_manifest_bytes_identical(self):
         self.style()
         generate(self.root)
         manifest = self.root / "skybox/manifest.json"

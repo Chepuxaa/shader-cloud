@@ -63,8 +63,7 @@ def descriptor(path, section):
     d = json.loads(data.decode("utf-8"), object_pairs_hook=unique_object,
                    parse_constant=invalid_constant)
     require(isinstance(d, dict), "descriptor must be an object")
-    require(type(d.get("contract")) is int and d["contract"] in (1, 2), "contract must be 1 or 2")
-    dynamic = d["contract"] == 2
+    require(type(d.get("contract")) is int and d["contract"] == 2, "style contract must be 2")
     require(d.get("id") == path.stem and ID.fullmatch(path.stem), "id must match the filename and use lowercase letters, digits, _ or -")
     require(text(d.get("name"), 48), "name must be 1..48 UTF-8 bytes")
     require(text(d.get("author"), 32), "author must be 1..32 UTF-8 bytes")
@@ -72,11 +71,10 @@ def descriptor(path, section):
     require("capture_background" not in d or type(d["capture_background"]) is bool,
             "capture_background must be boolean")
     controls = d.get("controls")
-    max_controls = MAX_USER_SLOTS if dynamic else 16
+    max_controls = MAX_USER_SLOTS
     require(isinstance(controls, list) and len(controls) <= max_controls,
             f"controls must be an array of at most {max_controls} items")
-    used = set() if dynamic else (set(range(8, 16)) if section == "weapons"
-                                  else set(range(6, 16)) if section == "autopeek" else set())
+    used = set()
     keys, bindings = set(), set()
     for c in controls:
         require(isinstance(c, dict), "control must be an object")
@@ -110,7 +108,7 @@ def descriptor(path, section):
             raise InvalidStyle(f"{key}: unsupported control type")
         if "binding" in c:
             binding = c["binding"]
-            allowed = ("speed", "radius", "opacity") if dynamic and section == "autopeek" else ("speed",)
+            allowed = ("speed", "radius", "opacity") if section == "autopeek" else ("speed",)
             require(isinstance(binding, str) and binding in allowed,
                     f"{key}: unsupported binding")
             require(binding not in bindings and kind == "slider" and "slot" not in c,
@@ -120,11 +118,11 @@ def descriptor(path, section):
             bindings.add(binding)
         else:
             slot = c.get("slot")
-            maximum = MAX_USER_SLOTS if dynamic else 15
+            maximum = MAX_USER_SLOTS
             require(type(slot) is int and 1 <= slot <= maximum - width + 1,
                     f"{key}: invalid slot")
             slots = set(range(slot, slot + width))
-            require(not used.intersection(slots), f"{key}: overlapping or reserved slots")
+            require(not used.intersection(slots), f"{key}: overlapping slots")
             used.update(slots)
     return d
 

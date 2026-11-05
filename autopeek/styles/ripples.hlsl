@@ -1,4 +1,3 @@
-cbuffer cb:register(b0) {float4x4 mvp;float2 tex;float time;float alpha;};
 struct Input {float4 pos:SV_POSITION;float4 col:COLOR0;float2 uv:TEXCOORD0;};
 float ring(float distance,float width,float aa) {
  return 1-smoothstep(width,width+aa,abs(distance));
@@ -10,13 +9,12 @@ float polygonRadius(float2 p) {
  return length(p)*cos(localAngle);
 }
 float4 main(Input i):SV_Target {
- // Integer UV offsets carry animation time and release age without native callbacks.
- float frame=floor(i.uv.y*.5);
- float status=floor(i.uv.x*.5);
- float2 uv=float2(i.uv.x-status*2,i.uv.y-frame*2);
- float elapsed=frame/60;
- float held=1-step(.5,status);
- float releaseAge=max(status-1,0)/60;
+ float2 uv=i.uv;
+ float elapsed=SC_Time();
+ if(elapsed>2.65)elapsed=2.65+fmod(elapsed-2.65,2.4);
+ elapsed=floor(elapsed*60+.5)/60;
+ float held=SC_ReleaseAge()<0?1:0;
+ float releaseAge=floor(max(SC_ReleaseAge(),0)*60+.5)/60;
  float radius=polygonRadius(uv*2-1);
  float aa=max(fwidth(radius),.0015);
  float mainRadius=.62;
@@ -37,7 +35,7 @@ float4 main(Input i):SV_Target {
  float mainWeight=(mainRing+mainGlow)*held;
  float energy=mainWeight+waveEnergy;
  float3 mainColor=float3(1,1,1);
- float3 color=(mainColor*mainWeight+i.col.rgb*waveEnergy)/max(energy,.0001);
+ float3 color=(mainColor*mainWeight+SC_Color(1)*waveEnergy)/max(energy,.0001);
  float opacity=saturate(energy)*boundary*i.col.a;
  return float4(color,opacity);
 }

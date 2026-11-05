@@ -1,11 +1,9 @@
 // Contract 2: the client injects b6 and SC_* helpers before this source.
 // This descriptor has 27 controls and infers 30 user floats without Lua edits.
-cbuffer cb:register(b0) { float4x4 mvp; float2 tex; float time; float alpha; };
 struct Input { float4 pos:SV_POSITION; float4 col:COLOR0; float2 uv:TEXCOORD0; };
 
 float4 main(Input i):SV_Target {
-    float2 packed = floor(i.uv * 0.5);
-    float2 p = (i.uv - packed * 2.0) * 2.0 - 1.0;
+    float2 p = i.uv * 2.0 - 1.0;
     p -= float2(SC_Get(27), SC_Get(28));
     float r = length(p);
     clip(0.98 - r);

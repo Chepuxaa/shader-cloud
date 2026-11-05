@@ -1,12 +1,10 @@
 // Contract 2: the client injects b6 and SC_* helpers before this source.
 // The greatest occupied slot is 18 (accent_color uses slots 16, 17 and 18).
-cbuffer cb:register(b0) { float4x4 mvp; float2 tex; float time; float alpha; };
 struct Input { float4 pos:SV_POSITION; float4 col:COLOR0; float2 uv:TEXCOORD0; };
 
 float4 main(Input i):SV_Target {
     // Keep only the fractional UV payload; runtime values come from SC_*.
-    float2 packed = floor(i.uv * 0.5);
-    float2 p = (i.uv - packed * 2.0) * 2.0 - 1.0;
+    float2 p = i.uv * 2.0 - 1.0;
     float r = length(p);
     clip(0.98 - r);
     float t = SC_Time();

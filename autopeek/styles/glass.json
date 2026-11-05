@@ -1,5 +1,5 @@
 {
-  "contract": 1,
+  "contract": 2,
   "id": "glass",
   "name": "Glass",
   "author": "kissd",
@@ -9,23 +9,23 @@
       "key": "radius",
       "label": "Radius",
       "type": "slider",
-      "slot": 4,
       "min": 10,
       "max": 100,
       "step": 1,
       "default": 50,
-      "scale": 0.84
+      "scale": 0.84,
+      "binding": "radius"
     },
     {
       "key": "opacity",
       "label": "Opacity",
       "type": "slider",
-      "slot": 5,
       "min": 0,
       "max": 100,
       "step": 1,
       "default": 100,
-      "scale": 0.01
+      "scale": 0.01,
+      "binding": "opacity"
     },
     {
       "key": "color",

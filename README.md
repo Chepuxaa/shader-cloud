@@ -1,7 +1,8 @@
 # Shaders cloud library
 
-HLSL effects and declarative controls for three independent Fatality Lua clients.
-The Lua clients and native bridges are not distributed by this repository.
+HLSL effects and declarative controls for the independent Skybox, Weapon and
+Autopeek Fatality Lua clients. This repository distributes JSON and HLSL only;
+the standalone Lua clients contain their native bridges.
 
 | Client | Catalog | Style files |
 | --- | --- | --- |
@@ -9,34 +10,30 @@ The Lua clients and native bridges are not distributed by this repository.
 | Weapon | `weapons/manifest.json` | `weapons/styles/<id>.json` and `.hlsl` |
 | Autopeek | `autopeek/manifest.json` | `autopeek/styles/<id>.json` and `.hlsl` |
 
-Every style has exactly one JSON and one HLSL file. Edit those files in place.
-There are no numbered style files or per-effect revisions. Git history retains
-previous contents if a rollback is needed.
+**All styles use descriptor `contract: 2`.** Update the three Lua clients before
+using this library. Contract-1 styles and their parameter transport have been
+retired; older clients cannot load the current styles. Previous library contents
+remain in Git history.
 
 ## Editing and refreshing
 
-For example, edit `autopeek/styles/glass.json` to change its controls or
-`autopeek/styles/glass.hlsl` to change its appearance. Commit the replacement,
-then press **Refresh library** in Autopeek. No manifest edit is needed when
-updating an existing style.
+Every style has exactly one JSON and one HLSL file. Edit those files in place;
+there are no numbered files or per-effect revisions. For example, edit
+`autopeek/styles/glass.json` to change its controls or its `.hlsl` to change the
+appearance. Commit the replacement, then press **Refresh library** in Autopeek.
 
-Refresh downloads the catalog and current style again, and marks other cached
-styles for a fresh download when selected. Every HTTP request has a cache-busting
-query. Working effects remain active if downloading, validation or compilation
-fails. Cached files remain available without HTTP; compatible user settings are
-preserved when controls refresh. Changed control types use their new defaults.
+Refresh downloads the catalog and current style again and marks other cached
+styles for a fresh download when selected. Requests have cache-busting queries.
+A failed download, validation or compilation preserves the working effect.
+Compatible user settings survive refresh; changed control types use defaults.
+Cached compatible styles remain available without HTTP.
 
-Use the updated Lua clients for this layout. Older clients that require numbered
-files cannot load the new library. Contract 2 styles require clients with dynamic
-parameter support. No Lua update is needed for later edits within a supported
-shader/control contract.
-
-To add a style, create `<id>.json` and `<id>.hlsl` in the appropriate `styles`
-directory. Set the name and author in the style JSON:
+To add a style, create `<id>.json` and `<id>.hlsl` in its section's `styles`
+directory. Name and author come from JSON:
 
 ```json
 {
-  "contract": 1,
+  "contract": 2,
   "id": "example",
   "name": "My effect",
   "author": "Your name",
@@ -45,31 +42,27 @@ directory. Set the name and author in the style JSON:
 }
 ```
 
-The author appears as **My effect (by Your name)** and is searchable. IDs are
-lowercase letters, digits, underscores and hyphens; the ID must match both
-filenames. Name and author support up to 48 and 32 UTF-8 bytes respectively.
-Optional `order` controls list position (lower first, default 1000); equal values
-are sorted by ID. Existing style order is preserved.
+The list displays **My effect (by Your name)** and searches both fields. IDs use
+lowercase letters, digits, underscores and hyphens and must match both filenames.
+Name and author allow up to 48 and 32 UTF-8 bytes. Lower `order` sorts first
+(default 1000), with ID as the tie-breaker.
 
 ### Automatic catalogs
 
-Do not edit `manifest.json` manually. After a push to `main`, the **Build style
-manifests** GitHub Actions workflow validates all three libraries and commits
-updated manifests as `github-actions[bot]`. No separate token or secret is needed.
-Once the workflow finishes, press **Refresh library** in the Lua menu.
+Do not edit `manifest.json` manually. The **Build style manifests** GitHub Actions
+workflow validates all three libraries on push to `main` and commits any catalog
+changes as `github-actions[bot]`. It also validates pull requests without writing.
+The Actions page provides **Run workflow** for a manual rebuild.
 
-Changing a JSON name/author updates its list entry. Deleting both style files
-removes the entry. Pull requests are validated without writing to the repository;
-catalogs are published after merge. The Actions page also offers **Run workflow**
-on `main` to rebuild manually.
+A catalog still has `contract: 1`: that number describes the ID/name/author list,
+not a shader descriptor or its GPU layout. It does not enable contract-1 styles.
+Changing a style name/author updates the list; deleting both files removes it.
+Missing pairs, malformed JSON, invalid controls, overlaps and file-size limits
+stop validation before catalog writes. The workflow validates source restrictions;
+it does not compile HLSL or prove its appearance in game.
 
-Missing pairs, malformed JSON, duplicate keys, invalid controls, legacy reserved
-slots, overlapping slots and file-size limits stop generation before any catalog is
-changed. Source checks enforce the client's HLSL size/include rules; they do not
-compile HLSL or prove its appearance in game. The Lua client still compiles the
-chosen shader and keeps its current effect if compilation fails.
-
-Local generation uses Python 3.10+ with no external dependencies:
+If branch rules prevent a bot commit, generate and commit the catalog locally
+or grant the workflow access. The workflow never force-pushes.
 
 ```text
 python -m unittest discover -s tests -v
@@ -77,24 +70,54 @@ python scripts/build_manifests.py
 python scripts/build_manifests.py --check
 ```
 
-Inside the client workspace, the test suite also compares parameter validation
-against `tools/cloud_parameter_contract.lua` when the optional `lupa` package is
-available. This integration comparison is skipped in a standalone library clone;
-ordinary schema tests need no dependencies. `CLOUD_PARAMETER_CONTRACT_LUA` can
-point to the helper when it lives elsewhere.
+Python 3.10+ needs no external dependencies for those checks. In the client
+workspace, optional `lupa` compares the Python schema with
+`tools/cloud_parameter_contract.lua`. That integration comparison is skipped in
+a standalone library clone. Set `CLOUD_PARAMETER_CONTRACT_LUA` when the helper
+lives elsewhere.
 
-If repository or branch rules block the bot commit, the workflow reports a failed
-publish. Generate locally and commit the catalogs, or grant the workflow access
-under the repository's rules; it never force-pushes.
+## Controls and slots
 
-## Legacy Autopeek radius (contract 1)
+Each control has a unique `key`, a `label`, a `type`, a `default`, and either a
+one-based scalar `slot` or an engine `binding`.
 
-Radius starts at **50%**. In the radius control of each style's JSON, keep
-`default` at 50 and set `scale` to the desired world radius divided by 50:
+| Type | Additional fields | Published value |
+| --- | --- | --- |
+| slider | min, max, step, optional scale | displayed value multiplied by scale |
+| select | options | zero-based selected index |
+| checkbox | boolean default | 0 or 1 |
+| color | RGB default | three consecutive normalized floats |
+
+`group` is `main` or `colors`. Slots cannot overlap. A color at slot 16 occupies
+16, 17 and 18. Gaps contain zero. Slot count is inferred from the greatest
+occupied endpoint; no `slot_count` field or Lua change is needed for 18, 30 or
+other counts. Zero user slots are valid.
+
+The maximum is **16368 user floats**, from DX11's 64 KiB constant-buffer limit
+minus 16 frame floats. A color can start no later than slot 16366. Buffers are
+padded to four floats, with a minimum of one user `float4` (80 bytes total for a
+zero-slot style). JSON is limited to 32768 bytes and HLSL to 65536 bytes. Selects
+have 1..16 options; catalogs contain up to 24 styles.
+
+Slider numbers and optional scale must be finite with magnitude at most 100000;
+scale must be nonzero. Scaled slider endpoints must have magnitude below 1e9.
+
+### Engine bindings
+
+`binding: "speed"` is one slotless slider with a range inside 0..300. Its displayed
+percentage is unscaled: 100 means normal animation speed.
+
+Autopeek also accepts slotless `radius` and `opacity` sliders. Their values use
+`scale`; physical radius is clamped to 8..128 world units and opacity to 0..1.
+Absent bindings default to radius 42 and opacity 1. Bindings must be unique,
+cannot declare a slot, and cannot use other control types.
+
+Published Autopeek radii start at **50%**. Keep the default at 50 and set `scale`
+to the desired world radius divided by 50:
 
 ```json
 {
-  "key": "radius", "label": "Radius", "type": "slider", "slot": 4,
+  "key": "radius", "label": "Radius", "type": "slider", "binding": "radius",
   "min": 10, "max": 100, "step": 1, "default": 50, "scale": 0.84
 }
 ```
@@ -105,204 +128,96 @@ Radius starts at **50%**. In the radius control of each style's JSON, keep
 | 0.84 | 42 |
 | 1.00 | 50 |
 
-At 100%, the radius doubles. The client clamps physical radius to 8..128 world
-units. Each style can draw a different proportion inside that carrier. Updating
-`scale` changes size while preserving the user's percentage setting.
+Each shader may draw a different proportion inside that carrier. Slots named
+`radius` or `opacity` without an engine binding are ordinary user parameters.
 
-Autopeek styles: **Ripples** (polygon ring and trailing waves), **Glass** (thin
-circular rim and blurred scene), **Radial** (soft center glow), and **Halo**
-(by Codex: thin contour, orbiting highlights and a restrained inner pulse).
+## Generated HLSL interface
 
-## Control schema
+The client prepends a generated constant buffer at pixel-shader register `b6`.
+Do not redeclare that buffer or any `SC_*` names. Weapon transparently remaps
+authored `b6` to its private `b7` slot.
 
-Each descriptor has `contract: 1` or `contract: 2`, `id`, `name`, `author` and
-`controls`. Existing published styles retain contract 1 and their original HLSL.
-A control has a unique `key`, `label`, `type`, `default` and either a one-based
-`slot` or an engine `binding`.
-
-| Type | Additional fields | Value |
-| --- | --- | --- |
-| slider | min, max, step, optional scale | displayed value multiplied by scale |
-| select | options | zero-based selected index |
-| checkbox | boolean default | 0 or 1 |
-| color | RGB default | three consecutive normalized floats |
-
-`group` is `main` or `colors`. Slots must not overlap. Color uses three consecutive
-slots. A slider's `scale` multiplies its displayed value before publication.
-Select and checkbox values occupy one scalar each.
-Slider numbers and optional scale must be finite with magnitude at most 100000;
-scale must be nonzero. Scaled slider endpoints must have magnitude below 1e9.
-Speed uses its unscaled percentage value.
-
-| Descriptor | User slots | Controls | Engine bindings |
-| --- | --- | --- | --- |
-| Contract 1 Skybox | 1..15 | at most 16 | speed |
-| Contract 1 Weapon | 1..7; 8..15 reserved | at most 16 | speed |
-| Contract 1 Autopeek | 1..5; 6..15 reserved | at most 16 | speed |
-| Contract 2, all sections | 1..16368; no reserved user slots | hardware bound of 16368; also limited by JSON size | speed; Autopeek also radius and opacity |
-
-The catalog supports 24 effects per section. HLSL is limited to 64 KiB and JSON
-to 32 KiB; external includes are rejected. The JSON byte limit normally bounds
-the number of controls long before the hardware-derived control-array limit.
-
-`binding: "speed"` is a unique slotless slider with range inside 0..300. Its
-displayed value is a percentage: 100 means normal animation speed. Contract 2
-Autopeek additionally accepts unique slotless sliders with `binding: "radius"`
-and `binding: "opacity"`. With those bindings absent, physical radius is 42 world
-units and opacity is 1. Radius and opacity values use the slider's optional
-`scale`; they are engine inputs and do not occupy user slots. For example:
-
-```json
-[
-  {"key":"radius","label":"Radius","type":"slider","binding":"radius","min":8,"max":128,"step":1,"default":42},
-  {"key":"opacity","label":"Opacity","type":"slider","binding":"opacity","min":0,"max":100,"step":1,"default":100,"scale":0.01},
-  {"key":"speed","label":"Speed","type":"slider","binding":"speed","min":0,"max":300,"step":1,"default":100}
-]
-```
-
-Bindings cannot also declare a slot, use another control type, or appear twice.
-Radius and opacity bindings are rejected in contract 1 and in other sections.
-Their schema uses ordinary finite slider validation; at runtime the client
-clamps physical radius to 8..128 world units and opacity to 0..1.
-
-## Dynamic shader contract (contract 2)
-
-Contract 2 derives its scalar count entirely from the JSON controls. Each scalar
-uses one slot and each color uses three; the count is the greatest occupied
-slot, or zero when no controls occupy slots. Gaps are allowed and contain zero.
-For example, a scalar in slot 18 allocates 18 user floats; a color starting in
-slot 28 allocates 30. Switching between those descriptors resizes storage
-automatically. There is no author-maintained `slot_count` field and no 15-slot
-restriction for contract 2.
-
-The maximum is 16368 user floats, derived from DX11's 64 KiB constant-buffer
-limit after reserving 16 frame floats. This is a technical upper bound, not
-unlimited storage. A color can start no later than slot 16366. Storage is padded
-to four floats, with at least one user `float4`; a zero-slot style therefore uses
-an 80-byte buffer.
-
-The client prepends a generated HLSL constant buffer at pixel-shader register
-`b6`, followed by accessors. Do not declare another buffer at `b6` or redefine
-these names in contract 2 HLSL:
-
-| Generated helper | Result |
+| Helper | Result |
 | --- | --- |
-| `SC_SLOT_COUNT` | compile-time inferred user scalar count |
-| `SC_Get(uint slot)` | scalar in a one-based user slot; zero outside 1..count |
+| `SC_SLOT_COUNT` | inferred scalar count, as a compile-time constant |
+| `SC_Get(uint slot)` | one-based user scalar; zero outside 1..count |
 | `SC_Color(uint startSlot)` | three consecutive scalars as `float3` |
-| `SC_Time()` | animation time, affected by the speed binding |
+| `SC_Time()` | animation seconds, affected by speed |
 | `SC_Clock()` | frame clock |
 | `SC_Opacity()` | engine opacity |
-| `SC_ReleaseAge()` | Autopeek release age; -1 while active |
+| `SC_ReleaseAge()` | Autopeek seconds since release; -1 while held |
 | `SC_FrameViewport()` | `float4(viewportX, viewportY, width, height)` |
 | `SC_FrameCamera()` | `float4(pitch, yaw, roll, tanHalfVerticalFov)` |
 | `SC_FrameAnchor()` | `float4(anchorX, anchorY, anchorZ, radius)` |
 
-Camera angles use degrees. The vertical tangent is calibrated for Autopeek;
-Skybox and Weapon supply the reference value 0.75 used by the legacy Weapon
-projection. Weapon transparently remaps authored `b6` to its private `b7` slot.
+Camera angles use degrees. Autopeek calibrates the vertical tangent; Skybox and
+Weapon supply the reference 0.75 tangent. The header contains four `float4`
+vectors (time/clock/opacity/release age, viewport, camera, anchor), followed by
+packed user vectors. All user slots remain available in every section.
 
-The first frame `float4` contains time, clock, opacity and release age. The next
-three contain viewport, camera and anchor respectively. User data starts after
-these 16 frame scalars, so every user slot remains available in every section.
-Shader input semantics and targets remain those of the corresponding section
-below; the legacy `b6` layout applies only to contract 1.
+### Skybox
 
-Contract 2 Autopeek uses `i.col.rgb = float3(1,1,1)` and
-`i.col.a = fade * opacity`. Read independent colors through `SC_Color`, and use
-the radius binding for carrier geometry. User slots named `radius` or `opacity`
-without a binding are ordinary shader parameters and do not change geometry or
-engine opacity. Autopeek retains the packed UV position format in both contracts:
-decode the local position as `(i.uv - floor(i.uv * 0.5) * 2) * 2 - 1`. Contract 2
-shaders read animation time and release age through `SC_Time()` and
-`SC_ReleaseAge()` instead of decoding them from UV offsets.
-
-Authoring examples are in [`examples/autopeek`](examples/autopeek):
-`three_color_18` and `three_color_30` each provide three independent colors,
-controls beyond slot 15 and the three engine bindings. They infer 18 and 30 user
-floats, respectively. These examples are outside the published `styles` folders
-and do not add entries to the live catalog. Copy a JSON/HLSL pair into
-`autopeek/styles` to publish it after testing in game.
-
-All three manifests remain `contract: 1` and may list styles of either descriptor
-version. Catalog generation emits the same ID/name/author entries for both.
-Clients validate the chosen descriptor separately: an older client can continue
-using contract 1 styles in a mixed catalog, and rejects an unsupported contract 2
-style when selected while retaining its working effect.
-
-## Legacy Skybox shader contract (contract 1)
-
-Skybox targets `ps_5_0`, receives the world-facing direction in `TEXCOORD0`,
-and uses a 64-byte constant buffer at `b6`:
+Targets `ps_5_0`, with world-facing direction in `TEXCOORD0`:
 
 ```hlsl
-cbuffer Custom : register(b6) {
-    float4 c_params;
-    float4 c_low;
-    float4 c_high;
-    float4 c_glow;
-};
-struct ps_in { float3 dir:TEXCOORD0; float4 position:SV_Position; };
-float4 main(ps_in i):SV_Target0 { return float4(c_low.rgb,1); }
+struct Input { float3 dir:TEXCOORD0; float4 pos:SV_Position; };
+float4 main(Input i):SV_Target0 { return float4(SC_Color(1),1); }
 ```
 
-`c_params.x` is animation time; the remaining 15 floats are slots 1..15.
-A Static selector must ignore animation time in HLSL. Included styles are
-Lines, Galaxy, Retro and Portal; Gradient is embedded in the client.
+Add a color at slot 1 to that example's JSON. Included styles are Lines, Galaxy,
+Retro and Portal; Gradient is embedded in the Lua. A Static mode must ignore
+`SC_Time()` in HLSL.
 
-## Legacy Weapon shader contract (contract 1)
+### Weapon
 
-Weapon targets `ps_5_0` and uses the same `b6` constant-buffer layout. Only
-slots 1..7 are available to effect controls; slots 8..15 hold viewport origin,
-viewport size, reference vertical projection tangent and camera angles.
-Only `csgo_weapon.vfx_ps` is replaced. Hologram uses the existing local-position
-`TEXCOORD8`; Galaxy uses pixel position and the camera projection. Do not add
-vertex-input dependencies that the original draw does not supply.
+Targets `ps_5_0` and replaces `csgo_weapon.vfx_ps`. Hologram reads the original
+local-position `TEXCOORD8`; Galaxy reads pixel position and frame-camera metadata.
+Do not add vertex-input dependencies that the original draw does not supply.
 
-## Autopeek shader inputs and legacy parameters
+### Autopeek
 
-Autopeek targets `ps_4_0` and uses Fatality's GUI pixel-shader input:
+Targets `ps_4_0` and receives normalized local UV coordinates:
 
 ```hlsl
-cbuffer cb:register(b0) { float4x4 mvp; float2 tex; float time; float alpha; };
 struct Input { float4 pos:SV_POSITION; float4 col:COLOR0; float2 uv:TEXCOORD0; };
+float4 main(Input i):SV_Target {
+    float2 p=i.uv*2-1;
+    float opacity=saturate(1-length(p));
+    return float4(SC_Color(1),opacity*i.col.a);
+}
 ```
 
-In contract 1, slots 1..3 are RGB through `i.col.rgb`, slot 4 is the ground-plane
-radius, and slot 5 is opacity through `i.col.a`. Slots 6..15 are reserved. Integer UV offsets
-encode animation time and release age; use the included effects to decode them.
-Ripples uses a 2.4-second wave lifecycle with emission offsets .25, 1.05 and 1.85.
-Other styles can fade with the supplied release age.
+`i.col.rgb` is white; `i.col.a` already includes activation fade and the opacity
+binding. Read colors with `SC_Color`. There are no integer UV offsets; time and
+release age come from the named helpers. Published Ripples/Halo preserve their
+existing animation cadence and cycle math locally in HLSL.
 
-Autopeek renders world geometry with the selected scene's hardware depth test.
-The vertex shader owns `b1/b2` for its camera and geometry parameters. The scene
-depth and viewport are selected at runtime; a separate viewmodel pass must not
-replace them. Controlled-device checks cover several sample counts and formats;
-in-game compatibility still needs testing.
+Autopeek renders world geometry using the selected scene's hardware depth test.
+The vertex shader owns `b1/b2` for camera and geometry. Scene depth and viewport
+are selected at runtime; separate viewmodel passes must not replace them.
+Controlled-device checks cover several sample counts and formats; in-game
+compatibility still needs testing.
 
-An optional `capture_background: true` descriptor binds the shared scene texture
-at `t0` with sampler `s0`. Glass uses screen-position UVs for blur. The shared
-image may include HUD already rendered at capture time; depth masking alone
-does not resolve that interaction.
+`capture_background: true` binds a scene image at `t0` with sampler `s0`. Glass
+also reads the native 80-byte `b0` GUI-layout buffer (`float4x4 mvp; float2 tex;`)
+for viewport/background dimensions. The captured image may include HUD already
+rendered at capture time; depth masking alone cannot separate that content.
 
-## Permissions and development
+Published styles are Ripples (polygon ring and trailing waves), Glass (circular
+rim and blurred scene), Radial (soft center glow), and Halo (by Codex: contour,
+orbiting highlights and a restrained inner pulse).
 
-Clients require FFI and HTTP. Filesystem permission is optional for offline
-caching. Use one client per category; each owns its own tab. Tools are developer
-build/check helpers and are not required by users. Existing native bridges are
-embedded in the standalone Lua files; style files never execute Lua or native
-modules.
+Authoring examples in [`examples/autopeek`](examples/autopeek), `three_color_18`
+and `three_color_30`, demonstrate three independent colors, slots beyond 15 and
+the three engine bindings. They are excluded from the live catalog. Copy a
+JSON/HLSL pair into `autopeek/styles` to publish it after testing.
 
-Offline checks from the client workspace:
+## Permissions and testing
 
-```text
-python tools/check_cloud_refresh.py
-python tools/check_sky_cloud.py
-python tools/check_cloud_assets.py
-python tools/check_shader_menus.py
-python tools/check_autopeek_cloud.py
-python tools/check_autopeek_mask_client.py
-```
+Clients require FFI and HTTP. Filesystem access is optional for offline caching.
+Use one Lua per category; each owns its own tab. Development tools are not
+required by users. Cloud files never execute Lua or native modules.
 
-Checks do not attach to CS2. Actual appearance still needs validation in Fatality.
-Marketplace approval and compatibility with future game updates are not promised.
+Owned-device fixtures compile and exercise parameter transport and rendering
+without attaching to CS2. Actual appearance still needs validation in Fatality.
+Marketplace approval and future engine-update compatibility are not promised.
