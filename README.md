@@ -134,7 +134,7 @@ Each shader may draw a different proportion inside that carrier. Slots named
 ## Generated HLSL interface
 
 The client prepends a generated constant buffer at pixel-shader register `b6`.
-Do not redeclare that buffer or any `SC_*` names. Weapon transparently remaps
+Do not redeclare that buffer or generated `SC_*` names. Weapon transparently remaps
 authored `b6` to its private `b7` slot.
 
 | Helper | Result |
@@ -146,6 +146,7 @@ authored `b6` to its private `b7` slot.
 | `SC_Clock()` | frame clock |
 | `SC_Opacity()` | engine opacity |
 | `SC_ReleaseAge()` | Autopeek seconds since release; -1 while held |
+| `SC_IsOccluded()` | Autopeek compile-time pass flag; true behind scene geometry |
 | `SC_FrameViewport()` | `float4(viewportX, viewportY, width, height)` |
 | `SC_FrameCamera()` | `float4(pitch, yaw, roll, tanHalfVerticalFov)` |
 | `SC_FrameAnchor()` | `float4(anchorX, anchorY, anchorZ, radius)` |
@@ -154,6 +155,7 @@ Camera angles use degrees. Autopeek calibrates the vertical tangent; Skybox and
 Weapon supply the reference 0.75 tangent. The header contains four `float4`
 vectors (time/clock/opacity/release age, viewport, camera, anchor), followed by
 packed user vectors. All user slots remain available in every section.
+`SC_IsOccluded()` returns false in Skybox and Weapon, which have no occluded pass.
 
 ### Skybox
 
@@ -194,18 +196,29 @@ float4 main(Input i):SV_Target {
 ```
 
 `i.col.rgb` is white; `i.col.a` already includes activation fade and the opacity
-binding. Read colors with `SC_Color`. There are no integer UV offsets; time and
-release age come from the named helpers. Published Ripples/Halo preserve their
-existing animation cadence and cycle math locally in HLSL.
+binding. Apply global opacity once, using either `i.col.a` or `SC_Opacity()`;
+do not multiply both. Read colors with `SC_Color`. There are no integer UV
+offsets; time and release age come from the named helpers. Published Ripples/Halo
+preserve their existing animation cadence and cycle math locally in HLSL.
 
 Autopeek renders world geometry using the selected scene's hardware depth test.
+The same HLSL is compiled for visible and occluded passes. Authors may optionally
+query `SC_IsOccluded()` to change the effect behind geometry; no JSON flag is
+needed. A shader that does not query it uses the same effect in both passes.
+The generated header defines `SC_OCCLUDED_PASS` as 0 or 1, so this branch is a
+compile-time choice. Glass reuses its own rim in the occluded pass and keeps its
+blurred interior in the visible pass. Its `#ifndef SC_OCCLUDED_PASS` compatibility
+guard supplies a visible-only helper for older client headers.
+
 The vertex shader owns `b1/b2` for camera and geometry. Scene depth and viewport
 are selected at runtime; separate viewmodel passes must not replace them.
 Controlled-device checks cover several sample counts and formats; in-game
 compatibility still needs testing.
 
 `capture_background: true` binds a scene image at `t0` with sampler `s0`. Glass
-also reads the native 80-byte `b0` GUI-layout buffer (`float4x4 mvp; float2 tex;`)
+keeps this flag for its visible blur; `SC_IsOccluded()` does not enable background
+capture. Glass also reads the native 80-byte `b0` GUI-layout buffer
+(`float4x4 mvp; float2 tex;`)
 for viewport/background dimensions. The captured image may include HUD already
 rendered at capture time; depth masking alone cannot separate that content.
 
