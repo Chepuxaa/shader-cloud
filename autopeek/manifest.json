@@ -20,6 +20,11 @@
       "id": "halo",
       "name": "Halo",
       "author": "Codex"
+    },
+    {
+      "id": "loader",
+      "name": "Loader",
+      "author": "kissd"
     }
   ]
 }

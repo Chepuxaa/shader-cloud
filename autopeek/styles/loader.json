@@ -1,0 +1,59 @@
+{
+  "contract": 2,
+  "id": "loader",
+  "name": "Loader",
+  "author": "kissd",
+  "order": 50,
+  "controls": [
+    {
+      "key": "radius",
+      "label": "Radius",
+      "type": "slider",
+      "min": 10,
+      "max": 100,
+      "step": 1,
+      "default": 50,
+      "scale": 0.84,
+      "binding": "radius"
+    },
+    {
+      "key": "opacity",
+      "label": "Opacity",
+      "type": "slider",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 100,
+      "scale": 0.01,
+      "binding": "opacity"
+    },
+    {
+      "key": "speed",
+      "label": "Speed",
+      "type": "slider",
+      "binding": "speed",
+      "min": 0,
+      "max": 300,
+      "step": 1,
+      "default": 100
+    },
+    {
+      "key": "segments",
+      "label": "Segments",
+      "type": "slider",
+      "slot": 4,
+      "min": 12,
+      "max": 48,
+      "step": 1,
+      "default": 28
+    },
+    {
+      "key": "color",
+      "label": "Color",
+      "type": "color",
+      "slot": 1,
+      "default": [230, 177, 198],
+      "group": "colors"
+    }
+  ]
+}

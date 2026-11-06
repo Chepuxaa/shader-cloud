@@ -225,6 +225,9 @@ rendered at capture time; depth masking alone cannot separate that content.
 Published styles are Ripples (polygon ring and trailing waves), Glass (circular
 rim and blurred scene), Radial (soft center glow), and Halo (by Codex: contour,
 orbiting highlights and a restrained inner pulse).
+Loader adds a circular row of rectangular blocks with a traveling loading
+highlight. Its color, segment count and speed are adjustable; the blocks stay
+fixed while the light travels around the contour.
 
 Authoring examples in [`examples/autopeek`](examples/autopeek), `three_color_18`
 and `three_color_30`, demonstrate three independent colors, slots beyond 15 and
